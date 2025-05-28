@@ -716,4 +716,4 @@ def s3_browser():
 if __name__ == '__main__':
     # Consider adding a check here if the S3 bucket exists or is accessible on startup
     # This might require AWS credentials to be set before this check
-    app.run(debug=True, port=5001)
+    app.run(debug=True, port=5000)
