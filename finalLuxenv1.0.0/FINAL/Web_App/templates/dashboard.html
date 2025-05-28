@@ -1,0 +1,1134 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="dashboard-container">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="flash-message {{ category }}">
+                    {{ message }}
+                    <button class="flash-close" onclick="this.parentElement.remove()">×</button>
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+    <!-- In-browser camera -->
+
+    <div class="dashboard-header">
+        <div class="header-content">
+            <h1>Your Scans</h1>
+            <p class="dashboard-subtitle">Upload or capture medical scans</p>
+        </div>
+        <div class="header-stats">
+            <div class="stat-card">
+                <span class="stat-value">{{ scans|length }}</span>
+                <span class="stat-label">Total Scans</span>
+            </div>
+            <div class="stat-card">
+                <span class="stat-value">{{ scans|selectattr('result', 'ne', 'Pending Analysis')|list|length }}</span>
+                <span class="stat-label">Analyzed</span>
+            </div>
+            <div class="stat-card">
+                <span class="stat-value">{{ scans|selectattr('result', 'eq', 'Pending Analysis')|list|length }}</span>
+                <span class="stat-label">Pending</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="upload-section">
+        <div class="upload-tabs">
+            <button class="tab-button active" data-tab="file-upload">File Upload</button>
+            <button class="tab-button" data-tab="camera-capture">Camera Capture</button>
+        </div>
+
+        <div class="tab-content active" id="file-upload">
+            <form method="POST" enctype="multipart/form-data" class="upload-form" id="uploadForm">
+                <div class="upload-card" id="dropZone">
+                    <div class="upload-content">
+                        <div class="upload-icon">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                                <polyline points="17 8 12 3 7 8"/>
+                                <line x1="12" y1="3" x2="12" y2="15"/>
+                            </svg>
+                        </div>
+                        <input type="file" name="scan" id="scan" required class="file-input" accept=".dcm,.nii,.nii.gz,.jpg,.jpeg,.png">
+                        <label for="scan" class="file-label">
+                            <span class="upload-text">Choose a file or drag it here</span>
+                            <span class="upload-button-text">Browse Files</span>
+                        </label>
+                        <p class="file-hint">Supports DICOM (.dcm), NIfTI (.nii, .nii.gz), and common image formats (.jpg, .jpeg, .png)</p>
+                        <div id="fileInfo" class="file-info"></div>
+                    </div>
+                    <button type="submit" class="upload-button" id="uploadButton" disabled>
+                        <span>Upload Scan</span>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                            <path d="M5 12h14M12 5l7 7-7 7"/>
+                        </svg>
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <div class="tab-content" id="camera-capture">
+            <div class="camera-card">
+                <div class="camera-content">
+                    <div class="camera-preview">
+                        <video id="video" autoplay playsinline></video>
+                        <canvas id="canvas" style="display:none;"></canvas>
+                    </div>
+                    <div class="camera-controls">
+                        <button id="snap" class="camera-button">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                <circle cx="12" cy="12" r="10"/>
+                                <circle cx="12" cy="12" r="3"/>
+                            </svg>
+                            Capture
+                        </button>
+                        <form id="photoForm" method="POST" enctype="multipart/form-data">
+                            <input type="hidden" name="camera_capture" id="cameraCapture">
+                            <button type="submit" class="camera-button" id="submitPhoto" disabled>
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                    <path d="M5 12h14M12 5l7 7-7 7"/>
+                                </svg>
+                                Submit Photo
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="scans-section">
+        <div class="section-header">
+            <h2>Recent Scans</h2>
+            <div class="section-actions">
+                <form method="POST" action="/bulk_delete" id="bulkDeleteForm" style="display: none;">
+                    <input type="hidden" name="scan_ids" id="selectedScans">
+                    <button type="submit" class="action-button delete" onclick="return confirm('Are you sure you want to delete the selected scans?');">
+                        <span>Delete Selected</span>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                            <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                        </svg>
+                    </button>
+                </form>
+            </div>
+        </div>
+        <div class="scans-grid">
+            {% for scan in scans %}
+            <div class="scan-card">
+                <div class="scan-header">
+                    <div class="scan-checkbox">
+                        <input type="checkbox" class="scan-select" data-scan-id="{{ scan[0] }}" onchange="updateBulkDeleteButton()">
+                    </div>
+                    <div class="scan-icon">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                            <polyline points="14 2 14 8 20 8"/>
+                            <line x1="16" y1="13" x2="8" y2="13"/>
+                            <line x1="16" y1="17" x2="8" y2="17"/>
+                            <polyline points="10 9 9 9 8 9"/>
+                        </svg>
+                    </div>
+                    <div class="scan-info">
+                        <h3>{{ scan[2] }}</h3>
+                        <span class="scan-status completed">Analysis Complete</span>
+                    </div>
+                </div>
+                <div class="scan-actions">
+                    <a href="/report/{{ scan[0] }}" class="action-button view">
+                        <span>View Report</span>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                            <circle cx="12" cy="12" r="3"/>
+                        </svg>
+                    </a>
+                    <form method="POST" action="/delete_scan" class="delete-form" onsubmit="return confirm('Are you sure you want to delete this scan?');">
+                        <input type="hidden" name="scan_id" value="{{ scan[0] }}">
+                        <button type="submit" class="action-button delete">
+                            <span>Delete</span>
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                            </svg>
+                        </button>
+                    </form>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <div class="metrics-section">
+        <div class="section-header">
+            <h2>Scan Metrics Over Time</h2>
+        </div>
+        <div class="chart-container">
+            <canvas id="scanChart"></canvas>
+        </div>
+    </div>
+</div>
+
+<style>
+    :root {
+        --bg-primary: #0a0a0a;
+        --bg-secondary: #111111;
+        --bg-tertiary: #1a1a1a;
+        --text-primary: #ffffff;
+        --text-secondary: #a0a0a0;
+        --border-color: rgba(255, 255, 255, 0.08);
+        --hover-color: rgba(255, 255, 255, 0.03);
+    }
+
+    .dashboard-container {
+        padding: 2rem;
+        max-width: 1200px;
+        margin: 0 auto;
+        background: var(--bg-primary);
+        min-height: calc(100vh - 80px);
+    }
+
+    .dashboard-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 2.5rem;
+        padding-bottom: 1.5rem;
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .header-content h1 {
+        font-size: 2.25rem;
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+        color: var(--text-primary);
+    }
+
+    .dashboard-subtitle {
+        color: var(--text-secondary);
+        font-size: 1.1rem;
+    }
+
+    .header-stats {
+        display: flex;
+        gap: 1rem;
+    }
+
+    .stat-card {
+        background: var(--bg-tertiary);
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        padding: 1rem 1.5rem;
+        text-align: center;
+    }
+
+    .stat-value {
+        display: block;
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin-bottom: 0.25rem;
+    }
+
+    .stat-label {
+        color: var(--text-secondary);
+        font-size: 0.875rem;
+    }
+
+    .upload-section {
+        margin-bottom: 3rem;
+    }
+
+    .upload-tabs {
+        display: flex;
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .tab-button {
+        background: var(--bg-tertiary);
+        border: 1px solid var(--border-color);
+        color: var(--text-secondary);
+        padding: 0.75rem 1.5rem;
+        border-radius: 6px;
+        font-size: 1rem;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+    .tab-button:hover, .tab-button.active {
+        background: var(--bg-secondary);
+        color: var(--text-primary);
+    }
+
+    .tab-content {
+        display: none;
+    }
+
+    .tab-content.active {
+        display: block;
+    }
+
+    .upload-card {
+        background: var(--bg-tertiary);
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        padding: 2.5rem;
+        transition: all 0.2s ease;
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+    }
+
+    .upload-card:hover {
+        background: var(--hover-color);
+    }
+
+    .upload-content {
+        text-align: center;
+    }
+
+    .upload-icon {
+        width: 48px;
+        height: 48px;
+        margin: 0 auto 1.5rem;
+        color: var(--text-primary);
+    }
+
+    .file-input {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border: 0;
+    }
+
+    .file-label {
+        display: inline-flex;
+        align-items: center;
+        gap: 1rem;
+        color: var(--text-primary);
+        font-weight: 500;
+        margin: 1rem 0;
+        cursor: pointer;
+        padding: 0.75rem 1.5rem;
+        background: var(--bg-secondary);
+        border: 1px solid var(--border-color);
+        border-radius: 6px;
+        transition: all 0.2s ease;
+    }
+
+    .file-label:hover {
+        background: var(--hover-color);
+    }
+
+    .upload-text {
+        color: var(--text-secondary);
+    }
+
+    .upload-button-text {
+        color: var(--text-primary);
+        background: var(--bg-tertiary);
+        padding: 0.5rem 1rem;
+        border-radius: 4px;
+        border: 1px solid var(--border-color);
+    }
+
+    .file-hint {
+        color: var(--text-secondary);
+        font-size: 0.875rem;
+    }
+
+    .upload-button {
+        background: var(--bg-secondary);
+        color: var(--text-primary);
+        border: 1px solid var(--border-color);
+        padding: 1rem 2rem;
+        border-radius: 8px;
+        font-size: 1rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        align-self: center;
+    }
+
+    .upload-button:hover {
+        background: var(--hover-color);
+    }
+
+    .section-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 2rem;
+    }
+
+    .section-header h2 {
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: var(--text-primary);
+    }
+
+    .section-actions {
+        display: flex;
+        gap: 0.5rem;
+    }
+
+    .filter-button {
+        background: var(--bg-tertiary);
+        border: 1px solid var(--border-color);
+        color: var(--text-secondary);
+        padding: 0.5rem 1rem;
+        border-radius: 6px;
+        font-size: 0.875rem;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+    .filter-button:hover, .filter-button.active {
+        background: var(--bg-secondary);
+        color: var(--text-primary);
+    }
+
+    .scans-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+        gap: 1.5rem;
+    }
+
+    .scan-card {
+        background: var(--bg-tertiary);
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        padding: 1.5rem;
+        transition: all 0.2s ease;
+    }
+
+    .scan-card:hover {
+        background: var(--hover-color);
+    }
+
+    .scan-header {
+        display: flex;
+        align-items: flex-start;
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .scan-icon {
+        color: var(--text-primary);
+        padding: 0.5rem;
+        background: var(--bg-secondary);
+        border-radius: 6px;
+    }
+
+    .scan-info h3 {
+        font-size: 1.1rem;
+        font-weight: 500;
+        margin-bottom: 0.5rem;
+        color: var(--text-primary);
+    }
+
+    .scan-status {
+        display: inline-block;
+        padding: 0.25rem 0.75rem;
+        border-radius: 4px;
+        font-size: 0.875rem;
+        font-weight: 500;
+    }
+
+    .scan-status.pending {
+        background: var(--bg-secondary);
+        color: var(--text-secondary);
+    }
+
+    .scan-status.completed {
+        background: var(--bg-secondary);
+        color: var(--text-primary);
+    }
+
+    .scan-actions {
+        display: flex;
+        gap: 1rem;
+    }
+
+    .action-button {
+        flex: 1;
+        padding: 0.75rem;
+        border-radius: 6px;
+        font-size: 0.875rem;
+        font-weight: 500;
+        text-align: center;
+        text-decoration: none;
+        transition: all 0.2s ease;
+        border: none;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+    }
+
+    .action-button.view {
+        background: var(--bg-secondary);
+        color: var(--text-primary);
+        border: 1px solid var(--border-color);
+    }
+
+    .action-button.view:hover {
+        background: var(--hover-color);
+    }
+
+    .action-button.delete {
+        background: var(--bg-tertiary);
+        color: var(--text-secondary);
+        border: 1px solid var(--border-color);
+    }
+
+    .action-button.delete:hover {
+        background: var(--hover-color);
+        color: var(--text-primary);
+    }
+
+    .delete-form {
+        flex: 1;
+    }
+
+    @media (max-width: 768px) {
+        .dashboard-container {
+            padding: 1rem;
+        }
+
+        .dashboard-header {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 1rem;
+        }
+
+        .header-stats {
+            width: 100%;
+        }
+
+        .stat-card {
+            flex: 1;
+        }
+
+        .scans-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .scan-actions {
+            flex-direction: column;
+        }
+
+        .section-header {
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .section-actions {
+            width: 100%;
+            justify-content: space-between;
+        }
+
+        .camera-controls {
+            flex-direction: column;
+            width: 100%;
+        }
+
+        .camera-button {
+            width: 100%;
+            justify-content: center;
+        }
+    }
+
+    .flash-message {
+        padding: 1rem;
+        margin-bottom: 1rem;
+        border-radius: 6px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        animation: slideIn 0.3s ease-out;
+    }
+
+    .flash-message.success {
+        background: var(--bg-tertiary);
+        border: 1px solid var(--border-color);
+        color: var(--text-primary);
+    }
+
+    .flash-message.error {
+        background: var(--bg-tertiary);
+        border: 1px solid var(--border-color);
+        color: var(--text-primary);
+    }
+
+    .flash-close {
+        background: none;
+        border: none;
+        color: var(--text-secondary);
+        cursor: pointer;
+        font-size: 1.25rem;
+        padding: 0;
+        margin-left: 1rem;
+    }
+
+    .flash-close:hover {
+        color: var(--text-primary);
+    }
+
+    .file-info {
+        margin-top: 1rem;
+        padding: 0.75rem;
+        background: var(--bg-secondary);
+        border: 1px solid var(--border-color);
+        border-radius: 6px;
+        color: var(--text-secondary);
+        font-size: 0.875rem;
+        display: none;
+    }
+
+    .file-info.show {
+        display: block;
+    }
+
+    @keyframes slideIn {
+        from {
+            transform: translateY(-10px);
+            opacity: 0;
+        }
+        to {
+            transform: translateY(0);
+            opacity: 1;
+        }
+    }
+
+    #dropZone.drag-over {
+        background: var(--hover-color);
+        border-color: var(--text-secondary);
+    }
+
+    .camera-card {
+        background: var(--bg-tertiary);
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        padding: 2rem;
+    }
+
+    .camera-content {
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+        align-items: center;
+    }
+
+    .camera-preview {
+        width: 100%;
+        max-width: 640px;
+        aspect-ratio: 4/3;
+        background: var(--bg-secondary);
+        border-radius: 8px;
+        overflow: hidden;
+    }
+
+    #video {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .camera-controls {
+        display: flex;
+        gap: 1rem;
+    }
+
+    .camera-button {
+        background: var(--bg-secondary);
+        color: var(--text-primary);
+        border: 1px solid var(--border-color);
+        padding: 0.75rem 1.5rem;
+        border-radius: 6px;
+        font-size: 1rem;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .camera-button:hover {
+        background: var(--hover-color);
+    }
+
+    .camera-button:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+
+    .metrics-section {
+        margin-top: 3rem;
+        background: var(--bg-tertiary);
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        padding: 2rem;
+    }
+
+    .chart-container {
+        background: var(--bg-secondary);
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        padding: 1.5rem;
+        margin-top: 1rem;
+        height: 500px;
+    }
+
+    .highlight {
+        border-color: #4ade80 !important;
+        background: rgba(74, 222, 128, 0.1) !important;
+    }
+
+    .file-input {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border: 0;
+    }
+
+    .file-label {
+        cursor: pointer;
+        color: var(--text-primary);
+        font-weight: 500;
+        margin: 1rem 0;
+        display: block;
+    }
+
+    .file-hint {
+        color: var(--text-secondary);
+        font-size: 0.875rem;
+        margin-top: 0.5rem;
+    }
+
+    .file-info {
+        margin-top: 1rem;
+        color: var(--text-primary);
+        font-size: 0.875rem;
+    }
+
+    .upload-button:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+
+    .scan-checkbox {
+        margin-right: 10px;
+    }
+    
+    .scan-checkbox input[type="checkbox"] {
+        width: 18px;
+        height: 18px;
+        cursor: pointer;
+    }
+    
+    .section-actions {
+        display: flex;
+        gap: 1rem;
+        align-items: center;
+    }
+</style>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('scan');
+        const fileInfo = document.getElementById('fileInfo');
+        const uploadButton = document.getElementById('uploadButton');
+
+        // Tab switching
+        const tabButtons = document.querySelectorAll('.tab-button');
+        const tabContents = document.querySelectorAll('.tab-content');
+
+        tabButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                const tabId = button.dataset.tab;
+                
+                // Update active states
+                tabButtons.forEach(btn => btn.classList.remove('active'));
+                tabContents.forEach(content => content.classList.remove('active'));
+                
+                button.classList.add('active');
+                document.getElementById(tabId).classList.add('active');
+            });
+        });
+
+        // File upload handling
+        fileInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            handleFileSelect(file);
+        });
+
+        // Handle drag and drop
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            dropZone.addEventListener(eventName, preventDefaults, false);
+        });
+
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropZone.addEventListener(eventName, highlight, false);
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropZone.addEventListener(eventName, unhighlight, false);
+        });
+
+        function highlight(e) {
+            dropZone.classList.add('highlight');
+        }
+
+        function unhighlight(e) {
+            dropZone.classList.remove('highlight');
+        }
+
+        dropZone.addEventListener('drop', handleDrop, false);
+
+        function handleDrop(e) {
+            const dt = e.dataTransfer;
+            const file = dt.files[0];
+            handleFileSelect(file);
+            fileInput.files = dt.files;
+        }
+
+        function handleFileSelect(file) {
+            if (file) {
+                const allowedTypes = ['.dcm', '.nii', '.nii.gz', '.jpg', '.jpeg', '.png'];
+                const fileExt = '.' + file.name.split('.').pop().toLowerCase();
+                
+                if (allowedTypes.includes(fileExt)) {
+                    fileInfo.textContent = `Selected file: ${file.name} (${formatFileSize(file.size)})`;
+                    fileInfo.classList.add('show');
+                    uploadButton.disabled = false;
+                } else {
+                    fileInfo.textContent = 'Invalid file type. Please select a supported medical image format.';
+                    fileInfo.classList.add('show');
+                    uploadButton.disabled = true;
+                }
+            } else {
+                fileInfo.classList.remove('show');
+                uploadButton.disabled = true;
+            }
+        }
+
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        // Camera handling
+        const video = document.getElementById('video');
+        const canvas = document.getElementById('canvas');
+        const snap = document.getElementById('snap');
+        const cameraCapture = document.getElementById('cameraCapture');
+        const submitPhoto = document.getElementById('submitPhoto');
+        const context = canvas.getContext('2d');
+        let stream = null;
+        let isCaptured = false;
+
+        // Initialize camera when the page loads
+        async function initializeCamera() {
+            try {
+                stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { 
+                        width: { ideal: 1280 },
+                        height: { ideal: 720 },
+                        facingMode: 'environment'
+                    } 
+                });
+                video.srcObject = stream;
+                video.play();
+                isCaptured = false;
+                updateCameraUI();
+            } catch (err) {
+                console.error('Error accessing camera:', err);
+                alert('Error accessing camera. Please make sure you have granted camera permissions.');
+            }
+        }
+
+        // Update UI based on capture state
+        function updateCameraUI() {
+            const cameraPreview = document.querySelector('.camera-preview');
+            const cameraControls = document.querySelector('.camera-controls');
+            
+            if (isCaptured) {
+                // Show captured image
+                video.style.display = 'none';
+                canvas.style.display = 'block';
+                canvas.style.width = '100%';
+                canvas.style.height = '100%';
+                canvas.style.objectFit = 'cover';
+                
+                // Update buttons
+                snap.innerHTML = `
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                        <path d="M3 12a9 9 0 1 0 18 0a9 9 0 0 0 -18 0"/>
+                        <path d="M9 12l2 2l4 -4"/>
+                    </svg>
+                    Retake Photo
+                `;
+                submitPhoto.disabled = false;
+            } else {
+                // Show video feed
+                video.style.display = 'block';
+                canvas.style.display = 'none';
+                
+                // Update buttons
+                snap.innerHTML = `
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                        <circle cx="12" cy="12" r="10"/>
+                        <circle cx="12" cy="12" r="3"/>
+                    </svg>
+                    Capture
+                `;
+                submitPhoto.disabled = true;
+            }
+        }
+
+        // Start camera when tab is selected
+        document.querySelector('[data-tab="camera-capture"]').addEventListener('click', () => {
+            if (!stream) {
+                initializeCamera();
+            }
+        });
+
+        // Stop camera when switching tabs
+        document.querySelector('[data-tab="file-upload"]').addEventListener('click', () => {
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+                stream = null;
+                video.srcObject = null;
+                isCaptured = false;
+            }
+        });
+
+        // Handle capture/retake button click
+        snap.addEventListener("click", async function() {
+            if (!stream && !isCaptured) {
+                alert('Camera not initialized. Please wait for the camera to start.');
+                return;
+            }
+
+            try {
+                if (!isCaptured) {
+                    // Capture photo
+                    if (video.paused) {
+                        await video.play();
+                    }
+                    context.drawImage(video, 0, 0, canvas.width, canvas.height);
+                    const dataURL = canvas.toDataURL('image/png');
+                    cameraCapture.value = dataURL;
+                    isCaptured = true;
+                } else {
+                    // Retake photo
+                    isCaptured = false;
+                    cameraCapture.value = '';
+                    if (!stream) {
+                        await initializeCamera();
+                    }
+                }
+                updateCameraUI();
+            } catch (err) {
+                console.error('Error handling camera:', err);
+                alert('Error with camera. Please try again.');
+            }
+        });
+
+        // Handle form submission
+        document.getElementById('photoForm').addEventListener('submit', function(e) {
+            if (!cameraCapture.value) {
+                e.preventDefault();
+                alert('Please capture a photo first.');
+            }
+        });
+
+        // Clean up camera when leaving page
+        window.addEventListener('beforeunload', () => {
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+            }
+        });
+
+        // Initialize camera if camera tab is active on page load
+        if (document.querySelector('[data-tab="camera-capture"]').classList.contains('active')) {
+            initializeCamera();
+        }
+
+        async function fetchMetrics() {
+            const response = await fetch('/api/scan-metrics');
+            const data = await response.json();
+            return data;
+        }
+
+        function renderChart(data) {
+            const labels = data.map(d => new Date(d.timestamp).toLocaleString());
+            const traitLabels = ["Redness Level", "Scaling Level", "Texture Score", "Color Variation", "Severity Score", "Predicted Deficiency"];
+            const colors = ["#e74c3c", "#2ecc71", "#3498db", "#f39c12", "#8e44ad", "#8e44ad"];
+
+            const datasets = traitLabels.map((label, i) => ({
+                label: label,
+                data: data.map(d => d[label]),
+                borderColor: colors[i],
+                backgroundColor: colors[i] + '44',
+                tension: 0.3,
+                fill: false
+            }));
+
+            new Chart(document.getElementById('scanChart'), {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: datasets
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Trait Progression Over Time',
+                            font: { 
+                                size: 18,
+                                color: '#ffffff'
+                            },
+                            padding: 20
+                        },
+                        legend: {
+                            position: 'top',
+                            labels: {
+                                color: '#ffffff',
+                                font: {
+                                    size: 12
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100,
+                            title: {
+                                display: true,
+                                text: 'Severity Level (1-100%)',
+                                color: '#a0a0a0'
+                            },
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)'
+                            },
+                            ticks: {
+                                color: '#a0a0a0'
+                            }
+                        },
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Scan Timestamp',
+                                color: '#a0a0a0'
+                            },
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)'
+                            },
+                            ticks: {
+                                color: '#a0a0a0',
+                                maxRotation: 45,
+                                minRotation: 45
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Function to refresh the chart
+        function refreshChart() {
+            fetchMetrics().then(renderChart);
+        }
+
+        // Refresh chart every 5 seconds
+        setInterval(refreshChart, 5000);
+
+        // Initial chart load
+        fetchMetrics().then(renderChart);
+
+        // Add shift-click functionality for scan selection
+        let lastSelectedCheckbox = null;
+        const scanCheckboxes = document.querySelectorAll('.scan-select');
+
+        scanCheckboxes.forEach(checkbox => {
+            checkbox.addEventListener('click', function(e) {
+                if (e.shiftKey && lastSelectedCheckbox) {
+                    const currentIndex = Array.from(scanCheckboxes).indexOf(this);
+                    const lastIndex = Array.from(scanCheckboxes).indexOf(lastSelectedCheckbox);
+                    
+                    const start = Math.min(currentIndex, lastIndex);
+                    const end = Math.max(currentIndex, lastIndex);
+                    
+                    // Select all checkboxes between the last selected and current one
+                    for (let i = start; i <= end; i++) {
+                        scanCheckboxes[i].checked = true;
+                    }
+                }
+                
+                lastSelectedCheckbox = this;
+                updateBulkDeleteButton();
+            });
+        });
+
+        function updateBulkDeleteButton() {
+            const selectedScans = Array.from(document.querySelectorAll('.scan-select:checked')).map(cb => cb.dataset.scanId);
+            const bulkDeleteForm = document.getElementById('bulkDeleteForm');
+            const selectedScansInput = document.getElementById('selectedScans');
+            
+            if (selectedScans.length > 0) {
+                bulkDeleteForm.style.display = 'block';
+                selectedScansInput.value = JSON.stringify(selectedScans);
+            } else {
+                bulkDeleteForm.style.display = 'none';
+            }
+        }
+
+        // Add keyboard shortcuts
+        document.addEventListener('keydown', function(e) {
+            // Ctrl/Cmd + A to select all
+            if ((e.ctrlKey || e.metaKey) && e.key === 'a') {
+                e.preventDefault();
+                scanCheckboxes.forEach(checkbox => checkbox.checked = true);
+                updateBulkDeleteButton();
+            }
+            
+            // Escape to deselect all
+            if (e.key === 'Escape') {
+                scanCheckboxes.forEach(checkbox => checkbox.checked = false);
+                updateBulkDeleteButton();
+            }
+        });
+    });
+</script>
+{% endblock %}

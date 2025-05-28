@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Scan Report & Analysis</title>
+  <style>
+    body { font-family: sans-serif; }
+    .gallery { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
+    img { width: 100%; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+  </style>
+</head>
+<body>
+  <h1>Scan Analysis Report</h1>
+  <div class="gallery" id="graphGallery">Loading...</div>
+
+  <script>
+    fetch("/api/s3-graphs")
+      .then(res => res.json())
+      .then(urls => {
+        const gallery = document.getElementById("graphGallery");
+        gallery.innerHTML = "";
+        urls.forEach(url => {
+          const img = document.createElement("img");
+          img.src = url;
+          gallery.appendChild(img);
+        });
+      })
+      .catch(err => {
+        document.getElementById("graphGallery").innerText = "Failed to load graphs.";
+        console.error(err);
+      });
+  </script>
+</body>
+</html>

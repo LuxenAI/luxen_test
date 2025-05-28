@@ -1,0 +1,56 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="container">
+    <div class="auth-container">
+        <div class="auth-header">
+            <h1>Welcome Back</h1>
+            <p>Sign in to your account to continue</p>
+        </div>
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="flash-message {{ category }}">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+        <form method="POST">
+            <div class="form-group">
+                <label for="email">Email</label>
+                <input type="email" id="email" name="email" placeholder="Enter your email" required>
+            </div>
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" name="password" placeholder="Enter your password" required>
+            </div>
+            <button type="submit" class="auth-button">Sign In</button>
+        </form>
+        <div class="auth-footer">
+            Don't have an account? <a href="/signup">Sign up</a>
+        </div>
+    </div>
+</div>
+
+<style>
+    .flash-message {
+        padding: 0.75rem;
+        margin-bottom: 1rem;
+        border-radius: 6px;
+        font-size: 0.875rem;
+        text-align: center;
+    }
+
+    .flash-message.error {
+        background: rgba(255, 59, 48, 0.1);
+        color: #ff3b30;
+        border: 1px solid rgba(255, 59, 48, 0.2);
+    }
+
+    .flash-message.success {
+        background: rgba(52, 199, 89, 0.1);
+        color: #34c759;
+        border: 1px solid rgba(52, 199, 89, 0.2);
+    }
+</style>
+{% endblock %}

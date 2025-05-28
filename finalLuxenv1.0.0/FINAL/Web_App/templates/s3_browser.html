@@ -1,0 +1,174 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="s3-browser-container">
+    <div class="browser-header">
+        <h1>S3 Bucket Contents</h1>
+        <p class="browser-subtitle">View all files stored in your S3 bucket</p>
+    </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="flash-message {{ category }}">
+                    {{ message }}
+                    <button class="flash-close" onclick="this.parentElement.remove()">×</button>
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <div class="files-table-container">
+        <table class="files-table">
+            <thead>
+                <tr>
+                    <th>Type</th>
+                    <th>File Name</th>
+                    <th>Last Modified</th>
+                    <th>Size</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for file in files %}
+                <tr>
+                    <td>
+                        <span class="file-type {{ file.type.lower() }}">{{ file.type }}</span>
+                    </td>
+                    <td>{{ file.key }}</td>
+                    <td>{{ file.last_modified.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                    <td>{{ (file.size / 1024)|round(2) }} KB</td>
+                    <td>
+                        <a href="{{ file.url }}" target="_blank" class="action-button view">
+                            <span>View</span>
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                                <circle cx="12" cy="12" r="3"/>
+                            </svg>
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<style>
+    .s3-browser-container {
+        padding: 2rem;
+        max-width: 1200px;
+        margin: 0 auto;
+        background: var(--bg-primary);
+        min-height: calc(100vh - 80px);
+    }
+
+    .browser-header {
+        margin-bottom: 2rem;
+    }
+
+    .browser-header h1 {
+        font-size: 2rem;
+        color: var(--text-primary);
+        margin-bottom: 0.5rem;
+    }
+
+    .browser-subtitle {
+        color: var(--text-secondary);
+        font-size: 1.1rem;
+    }
+
+    .files-table-container {
+        background: var(--bg-tertiary);
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        overflow: hidden;
+    }
+
+    .files-table {
+        width: 100%;
+        border-collapse: collapse;
+        color: var(--text-primary);
+    }
+
+    .files-table th,
+    .files-table td {
+        padding: 1rem;
+        text-align: left;
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .files-table th {
+        background: var(--bg-secondary);
+        font-weight: 500;
+        color: var(--text-secondary);
+    }
+
+    .files-table tr:hover {
+        background: var(--hover-color);
+    }
+
+    .file-type {
+        display: inline-block;
+        padding: 0.25rem 0.75rem;
+        border-radius: 4px;
+        font-size: 0.875rem;
+        font-weight: 500;
+    }
+
+    .file-type.scan {
+        background: rgba(52, 152, 219, 0.2);
+        color: #3498db;
+    }
+
+    .file-type.metadata {
+        background: rgba(46, 204, 113, 0.2);
+        color: #2ecc71;
+    }
+
+    .file-type.graph {
+        background: rgba(155, 89, 182, 0.2);
+        color: #9b59b6;
+    }
+
+    .file-type.unknown {
+        background: rgba(149, 165, 166, 0.2);
+        color: #95a5a6;
+    }
+
+    .action-button {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.5rem 1rem;
+        border-radius: 4px;
+        font-size: 0.875rem;
+        text-decoration: none;
+        transition: all 0.2s ease;
+    }
+
+    .action-button.view {
+        background: var(--bg-secondary);
+        color: var(--text-primary);
+        border: 1px solid var(--border-color);
+    }
+
+    .action-button.view:hover {
+        background: var(--hover-color);
+    }
+
+    @media (max-width: 768px) {
+        .s3-browser-container {
+            padding: 1rem;
+        }
+
+        .files-table th,
+        .files-table td {
+            padding: 0.75rem;
+        }
+
+        .files-table {
+            font-size: 0.875rem;
+        }
+    }
+</style>
+{% endblock %} 

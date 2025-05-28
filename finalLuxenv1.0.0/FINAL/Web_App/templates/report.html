@@ -1,0 +1,116 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="report-container">
+  <div class="report-card">
+    <h1 class="report-title">Scan Report</h1>
+    <div class="report-info">
+      <div class="report-row">
+        <span class="report-label">Filename:</span>
+        <span class="report-value">{{ scan[2] }}</span>
+      </div>
+      <div class="report-row">
+        <span class="report-label">Status:</span>
+        <span class="report-status {{ scan[3].lower().replace(' ', '-') }}">{{ scan[3] }}</span>
+      </div>
+    </div>
+    <a href="/dashboard" class="back-button">← Back to Dashboard</a>
+  </div>
+</div>
+<style>
+  .report-container {
+    min-height: calc(100vh - 80px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg-primary);
+    padding: 2rem;
+  }
+  .report-card {
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 2.5rem 2rem 2rem 2rem;
+    max-width: 420px;
+    width: 100%;
+    box-shadow: 0 4px 32px 0 rgba(0,0,0,0.18);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2rem;
+  }
+  .report-title {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 1.5rem;
+    letter-spacing: 0.01em;
+    text-align: center;
+  }
+  .report-info {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+  }
+  .report-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 1.1rem;
+  }
+  .report-label {
+    color: var(--text-secondary);
+    font-weight: 500;
+  }
+  .report-value {
+    color: var(--text-primary);
+    font-weight: 500;
+    word-break: break-all;
+  }
+  .report-status {
+    padding: 0.25rem 0.9rem;
+    border-radius: 4px;
+    font-size: 1rem;
+    font-weight: 600;
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+    text-transform: capitalize;
+  }
+  .report-status.pending-analysis {
+    color: var(--text-secondary);
+  }
+  .report-status.completed {
+    color: #4ade80;
+    border-color: #166534;
+  }
+  .back-button {
+    margin-top: 1.5rem;
+    display: inline-block;
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    padding: 0.75rem 1.5rem;
+    font-size: 1rem;
+    font-weight: 500;
+    text-decoration: none;
+    transition: background 0.2s, color 0.2s;
+  }
+  .back-button:hover {
+    background: var(--hover-color);
+    color: var(--text-primary);
+  }
+  @media (max-width: 600px) {
+    .report-card {
+      padding: 1.5rem 0.5rem 1rem 0.5rem;
+    }
+    .report-title {
+      font-size: 1.3rem;
+    }
+    .report-row {
+      font-size: 1rem;
+    }
+  }
+</style>
+{% endblock %}

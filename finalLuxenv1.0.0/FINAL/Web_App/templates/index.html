@@ -1,0 +1,169 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="landing-container">
+    <div id="star-field"></div>
+    <div class="content-wrapper">
+        <h1 class="main-title">The world's best health scanner, powered by AI</h1>
+        <p class="subtitle">Upload your medical scans. Get instant AI-powered analysis. Monitor your health with precision.</p>
+        <div class="cta-group">
+            <a href="/signup" class="cta-button primary">Get Started</a>
+            <a href="/login" class="cta-button secondary">Sign In</a>
+        </div>
+    </div>
+</div>
+
+<style>
+    .landing-container {
+        min-height: calc(100vh - 80px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 2rem;
+        position: relative;
+        overflow: hidden;
+        background: var(--bg-primary);
+    }
+
+    #star-field {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        pointer-events: none;
+        z-index: 0;
+    }
+
+    .star {
+        position: absolute;
+        width: 2px;
+        height: 2px;
+        background: var(--text-primary);
+        border-radius: 50%;
+        opacity: 0.2;
+        animation: fade 3s infinite;
+    }
+
+    @keyframes fade {
+        0%, 100% { opacity: 0.2; }
+        50% { opacity: 1; }
+    }
+
+    .content-wrapper {
+        text-align: center;
+        max-width: 800px;
+        padding: 2rem;
+        position: relative;
+        z-index: 1;
+    }
+
+    .main-title {
+        font-size: 4rem;
+        font-weight: 700;
+        margin-bottom: 1.5rem;
+        background: linear-gradient(to right, #ffffff, #a0a0a0);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        line-height: 1.1;
+        animation: fadeInUp 1s ease-out;
+        font-family: 'Poppins', Arial, Helvetica, sans-serif;
+    }
+
+    .subtitle {
+        font-size: 1.25rem;
+        line-height: 1.6;
+        color: var(--text-secondary);
+        margin-bottom: 2.5rem;
+        max-width: 600px;
+        margin-left: auto;
+        margin-right: auto;
+        animation: fadeInUp 1s ease-out 0.2s backwards;
+    }
+
+    .cta-group {
+        display: flex;
+        gap: 1rem;
+        justify-content: center;
+        align-items: center;
+        animation: fadeInUp 1s ease-out 0.4s backwards;
+    }
+
+    .cta-button {
+        display: inline-block;
+        padding: 0.875rem 1.75rem;
+        font-size: 1rem;
+        font-weight: 500;
+        border-radius: 8px;
+        text-decoration: none;
+        transition: all 0.3s ease;
+    }
+
+    .cta-button.primary {
+        background: var(--text-primary);
+        color: var(--bg-primary);
+        border: 1px solid var(--text-primary);
+    }
+
+    .cta-button.primary:hover {
+        background: transparent;
+        color: var(--text-primary);
+    }
+
+    .cta-button.secondary {
+        background: transparent;
+        color: var(--text-primary);
+        border: 1px solid var(--text-primary);
+    }
+
+    .cta-button.secondary:hover {
+        background: var(--text-primary);
+        color: var(--bg-primary);
+    }
+
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    @media (max-width: 768px) {
+        .main-title {
+            font-size: 2.5rem;
+        }
+
+        .subtitle {
+            font-size: 1.1rem;
+        }
+
+        .cta-group {
+            flex-direction: column;
+        }
+
+        .cta-button {
+            width: 100%;
+        }
+    }
+</style>
+
+<script>
+// Generate random stars
+const STAR_COUNT = 180;
+const starField = document.getElementById('star-field');
+function randomBetween(min, max) {
+  return Math.random() * (max - min) + min;
+}
+for (let i = 0; i < STAR_COUNT; i++) {
+  const star = document.createElement('div');
+  star.className = 'star';
+  star.style.top = randomBetween(0, 100) + 'vh';
+  star.style.left = randomBetween(0, 100) + 'vw';
+  star.style.animationDelay = randomBetween(0, 3) + 's';
+  starField.appendChild(star);
+}
+</script>
+{% endblock %}
