@@ -1,0 +1,9 @@
+bash
+Flask==2.0.2
+gunicorn==20.1.0
+
+bash
+web: gunicorn app:app
+
+bash
+python-3.9.7
